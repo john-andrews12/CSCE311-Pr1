@@ -2,7 +2,6 @@
 #define MAIN_H
 
 #include <iostream>
-#include <cmath>
 #include <fstream>
 #include <vector>
 

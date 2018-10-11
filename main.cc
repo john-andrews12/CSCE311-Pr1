@@ -91,6 +91,13 @@ int main() {
 	
 	//myFileHandler.close();
 	
+	/*string testing = "   This    is    a test string.   ";
+	vector<string> mysplit = split_string(testing,' ');
+	
+	for (int i = 0; i < mysplit.size(); ++i) {
+		cout << i << ": " << mysplit.at(i) << endl;
+	}*/
+	
 	cout << "Finishing" << endl;
 	
 	return 0;
