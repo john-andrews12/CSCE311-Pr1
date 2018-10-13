@@ -73,7 +73,7 @@ int main(void){
     rc = connect(client_sock, (struct sockaddr *) &server_sockaddr, len);
     if(rc == -1){
         //printf("CONNECT ERROR = %d\n", sock_errno());
-        cout << "CONNECT ERROR" << SO_ERROR << endl;
+        cout << "CONNECT ERROR " << SO_ERROR << endl;
         close(client_sock);
         exit(1);
     }

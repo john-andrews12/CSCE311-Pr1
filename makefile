@@ -1,19 +1,26 @@
 GPP = g++ -O3 -Wall -std=c++11
 
-A = main.cc
-B = using_socket.cc
+A = newtry.cc
+B = newtrysending.cc
+C = alltogethere.cc
 
-Aprog: $A
-	$(GPP) -o Aprog $A
+Aprog: $C
+	$(GPP) -o Aprog $C
 
-main.o: main.h main.cc
-	$(GPP) -c main.cc
+alltogethere.o: alltogethere.cc
+	$(GPP) -c alltogethere.cc
+
+Aprog2: $A
+	$(GPP) -o Aprog2 $A
+
+newtry.o: newtry.cc
+	$(GPP) -c newtry.cc
 	
-Aprog2: $B
-	$(GPP) -o Aprog2 $B
-	
-using_socket.o: using_socket.h using_socket.cc
-	$(GPP) -c using_socket.cc
+Aprog1: $B
+	$(GPP) -o Aprog1 $B
+
+newtrysending.o: newtrysending.cc
+	$(GPP) -c newtrysending.cc
 
 clean:
-	rm ./Aprog ./Aprog2
+	rm ./Aprog*

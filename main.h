@@ -7,6 +7,4 @@
 
 using namespace std;
 
-vector<string> split_string(string line, char del);
-
 #endif // MAIN_H
