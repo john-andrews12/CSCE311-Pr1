@@ -2,6 +2,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <unistd.h>
 
 //using namespace std;
 
@@ -21,37 +22,65 @@ int main() {
 	
 	int limit = 10;
 	
-	memset(&hints, 0, sizeof(struct addrinfo));
-	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_flags = AI_PASSIVE;
+	bool connectedd = false;
 	
-	if((status = getaddrinfo(NULL, "3490", &hints, &res)) != 0)
-	{
-		std::cout << "ERROR at getaddrinfo " << gai_strerror(status) << std::endl;
-		exit(1);
+	std::cout << "a" << std::endl;
+	
+	while(!connectedd) {
+	
+		memset(&hints, 0, sizeof(struct addrinfo));
+		hints.ai_family = AF_UNSPEC;
+		hints.ai_socktype = SOCK_STREAM;
+		hints.ai_flags = AI_PASSIVE;
+		
+		if((status = getaddrinfo(NULL, "3490", &hints, &res)) != 0)
+		{
+			std::cout << "ERROR at getaddrinfo " << gai_strerror(status) << std::endl;
+			exit(1);
+		}
+		
+		//do things
+		//client_sock = socket(AF_UNIX, SOCK_STREAM, 0);
+		client_sock = socket(res->ai_family,res->ai_socktype,res->ai_protocol);
+		if(client_sock == -1)
+		{
+			std::cout << "ERROR at socket call " << errno << std::endl;
+			exit(1);
+		}
+		
+		/*binding = bind(client_sock, res->ai_addr, res->ai_addrlen);
+		if(binding == -1) {
+			std::cout << "ERROR at bind call " << errno << std::endl;
+			exit(1);
+		}*/
+		
+		connected = connect(client_sock, res->ai_addr, res->ai_addrlen);
+		if(connected == -1) {
+			std::cout << "ERROR at connect call " << errno << std::endl;
+			close(client_sock);
+		}
+		else
+		{
+			connectedd = true;
+		}
+		
+		//std::cout << client_sock << std::endl;
+		//std::cout << res->ai_addr << std::endl;
+		//std::cout << res->ai_addrlen << std::endl;
+		
+		//b++;
+		//chill and wait
 	}
 	
-	//do things
-	//client_sock = socket(AF_UNIX, SOCK_STREAM, 0);
-	client_sock = socket(res->ai_family,res->ai_socktype,res->ai_protocol);
-	if(client_sock == -1)
-	{
-		std::cout << "ERROR at socket call " << errno << std::endl;
-		exit(1);
-	}
 	
-	/*binding = bind(client_sock, res->ai_addr, res->ai_addrlen);
-	if(binding == -1) {
-		std::cout << "ERROR at bind call " << errno << std::endl;
+	
+	/*connected = connect(client_sock, res->ai_addr, res->ai_addrlen);
+	if(connected == -1) {
+		std::cout << "ERROR at connect call (1) " << errno << std::endl;
 		exit(1);
 	}*/
 	
-	connected = connect(client_sock, res->ai_addr, res->ai_addrlen);
-	if(connected == -1) {
-		std::cout << "ERROR at connect call " << errno << std::endl;
-		exit(1);
-	}
+	std::cout << "b" << std::endl;
 	
 	/*listening = listen(client_sock, limit);
 	if(listening == -1) {

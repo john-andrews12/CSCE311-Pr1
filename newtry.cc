@@ -3,6 +3,8 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
+#include <fcntl.h>
+
 //using namespace std;
 
 int main() {
@@ -41,6 +43,14 @@ int main() {
 		exit(1);
 	}
 	
+	/*int flags = fcntl(client_sock, F_GETFL);
+	int make_non_blocking = fcntl(client_sock, F_SETFL, flags | O_NONBLOCK); // fcntl(client_sock, F_GETFL, 0), O_NONBLOCK);
+	if(make_non_blocking == -1){
+		std::cout << "ERROR at fcntl call " << errno << std::endl;
+	}*/
+	
+	//fcntl(client_sock, F_SETFL, O_NONBLOCK);
+	
 	binding = bind(client_sock, res->ai_addr, res->ai_addrlen);
 	if(binding == -1) {
 		std::cout << "ERROR at bind call " << errno << std::endl;
@@ -61,11 +71,15 @@ int main() {
 	
 	addr_size = sizeof(incomming_addr);
 	
+	std::cout << "a" << std::endl;
+	
 	newfd = accept(client_sock, (struct sockaddr *) &incomming_addr, &addr_size);
 	if(newfd == -1) {
 		std::cout << "ERROR at accept call " << errno << std::endl;
 		exit(1);
 	}
+	
+	std::cout << "b" << std::endl;
 	
 	//int other_id;
 	
