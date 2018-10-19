@@ -1,26 +1,12 @@
 GPP = g++ -O3 -Wall -std=c++11
 
-A = newtry.cc
-B = newtrysending.cc
-C = alltogethere.cc
+C = completed_sol.cc
 
-Aprog: $C
-	$(GPP) -o Aprog $C
+UnixDomSock: $C
+	$(GPP) -o UnixDomSock $C
 
-alltogethere.o: alltogethere.cc
-	$(GPP) -c alltogethere.cc
-
-Aprog2: $A
-	$(GPP) -o Aprog2 $A
-
-newtry.o: newtry.cc
-	$(GPP) -c newtry.cc
-	
-Aprog1: $B
-	$(GPP) -o Aprog1 $B
-
-newtrysending.o: newtrysending.cc
-	$(GPP) -c newtrysending.cc
+completed_sol.o: completed_sol.cc
+	$(GPP) -c completed_sol.cc
 
 clean:
-	rm ./Aprog*
+	rm ./UnixDomSock ./unix_sock.*
