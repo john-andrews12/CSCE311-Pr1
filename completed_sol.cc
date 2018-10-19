@@ -1,16 +1,8 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
-#include <sys/types.h>
 #include <sys/socket.h>
-#include <netdb.h>
-#include <stdio.h>
 #include <unistd.h>
-#include <sys/wait.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/mman.h>
 #include <sys/un.h>
 
 std::string GetEightLetterRep(std::string input);
@@ -47,18 +39,12 @@ int main(int argc, char *argv[]) {
 		struct sockaddr_storage incomming_addr;
 		socklen_t addr_size;
 		
-		int newfd;
-		
-		int binding, connected, listening, recieved;
-		
+		int child_sock2, parent_sock2, len2, binding, connected, listening, recieved, newfd;
 		int limit = 10;
 		
-		///////////////////////////////////////////////////////////////////////////
-		
-		int child_sock2, parent_sock2, len2;
 		struct sockaddr_un parent_sockaddr; 
 		struct sockaddr_un child_sockaddr; 
-		memset(&parent_sockaddr, 0, sizeof(struct sockaddr_un));
+		
 		memset(&child_sockaddr, 0, sizeof(struct sockaddr_un));
 		
 		child_sock2 = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -72,10 +58,8 @@ int main(int argc, char *argv[]) {
 		len2 = sizeof(child_sockaddr);
 
 		unlink(CHILD_PATH);
-		//unlink(SERVER_PATH);
 		binding = bind(child_sock2, (struct sockaddr *) &child_sockaddr, len2);
 		if (binding == -1){
-			//printf("BIND ERROR: %d\n", sock_errno());
 			std::cout << "BIND ERROR"<< errno << std::endl;
 			close(child_sock2);
 			exit(1);
@@ -94,8 +78,6 @@ int main(int argc, char *argv[]) {
 			std::cout << "ERROR at accept call " << errno << std::endl;
 			exit(1);
 		}
-		
-		///////////////////////////////////////////////////////////////////////////
 		
 		//HANDLE INPUT FROM PARENT PROCESS
 		
@@ -159,8 +141,6 @@ int main(int argc, char *argv[]) {
 		
 		//while there are still lines to process
 		while (total_lines > 0) {
-			//std::cout << "total lines is " << total_lines << std::endl;
-			
 			recieved = recv(newfd, buf, sizeof(buf), 0);
 			if (recieved == -1) {
 				std::cout << "ERROR at recv call " << errno << std::endl;
@@ -209,11 +189,10 @@ int main(int argc, char *argv[]) {
 		
 		//give this data back to the parent process
 		
-		//first we need to try to connect to it
+		//first we need to try to connect to the parent
 		bool connected_to_parent = false;
 		while (!connected_to_parent) {
 			//go through the process of making a socket and try to connect to it
-			
 			memset(&parent_sockaddr, 0, sizeof(struct sockaddr_un));
 			
 			parent_sock2 = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -248,12 +227,9 @@ int main(int argc, char *argv[]) {
 		
 		//we hard enter the 8 because we define the first message length to be 8
 		int bytes_sent = send(parent_sock2, first_message, strlen(first_message), 0);
-		if (bytes_sent != 8) {
+		if (bytes_sent != FIRST_MESSAGE_LEN) {
 			std::cout << "ERROR maybe at send (4) " << errno << std::endl;
 			exit(1);
-		}
-		else {
-			//std::cout << "Bytes Sent: " << bytes_sent << std::endl;
 		}
 		
 		//now we send each and every line 
@@ -281,15 +257,11 @@ int main(int argc, char *argv[]) {
 		struct sockaddr_storage incomming_addr;
 		socklen_t addr_size;
 		
-		int newfd;
-		
-		int binding, connected, listening;
-		
+		int child_sock2, parent_sock2, len2, binding, connected, listening, newfd;
 		int limit = 10;
 		
-		int child_sock2, parent_sock2, len2;
-			struct sockaddr_un parent_sockaddr; 
-			struct sockaddr_un child_sockaddr; 
+		struct sockaddr_un parent_sockaddr; 
+		struct sockaddr_un child_sockaddr; 
 		
 		//try to establish a connection to the child socket 
 		bool connected_to_child = false;
@@ -346,9 +318,8 @@ int main(int argc, char *argv[]) {
 		//now we need to send the first message, that is, how many lines there are total
 		char const *first_message = GetEightLetterRep(std::to_string(lines_total)).c_str();
 		
-		//we hard enter the 8 because we define the first message length to be 8
 		bytes_sent = send(child_sock2, first_message, strlen(first_message), 0);
-		if (bytes_sent != 8) {
+		if (bytes_sent != FIRST_MESSAGE_LEN) {
 			std::cout << "ERROR maybe at send " << errno << std::endl;
 			exit(1);
 		}
@@ -375,6 +346,8 @@ int main(int argc, char *argv[]) {
 		//std::cout << "EXIT PARENT BEFORE" << std::endl;
 		
 		//open up the parent port to recieve the child data
+		memset(&parent_sockaddr, 0, sizeof(struct sockaddr_un));
+		
 		parent_sock2 = socket(AF_UNIX, SOCK_STREAM, 0);
 		if (parent_sock2 == -1) {
 			std::cout << "SOCKET ERROR" << errno << std::endl;
@@ -386,10 +359,8 @@ int main(int argc, char *argv[]) {
 		len2 = sizeof(parent_sockaddr);
 
 		unlink(PARENT_PATH);
-		//unlink(SERVER_PATH);
 		binding = bind(parent_sock2, (struct sockaddr *) &parent_sockaddr, len2);
 		if (binding == -1){
-			//printf("BIND ERROR: %d\n", sock_errno());
 			std::cout << "BIND ERROR"<< errno << std::endl;
 			close(parent_sock2);
 			exit(1);
@@ -417,7 +388,7 @@ int main(int argc, char *argv[]) {
 		
 		std::string rec = "";
 		
-		int recieved;//the length of the line we are reading
+		int recieved;//the number of bytes we read in on every cycle
 		
 		std::vector<std::string> all_lines;
 		
@@ -425,7 +396,6 @@ int main(int argc, char *argv[]) {
 		//then we process the input (what was read) as another step
 		
 		int total_lines = 0;
-		//int total_to_process = 0;
 		
 		//handle the initial message, that is getting the total number of expected lines
 		while (first_com) {
@@ -436,8 +406,6 @@ int main(int argc, char *argv[]) {
 			}
 			
 			if (recieved >= FIRST_MESSAGE_LEN || rec.size() + recieved >= FIRST_MESSAGE_LEN) {
-				//total_to_process = rec.size() + recieved - FIRST_MESSAGE_LEN;//if we read in more than the required
-				
 				//note: we have to process 'recieved' characters. We only need the first 8 for the length, all past that 
 				//still need to be handled, just separtely 
 				
@@ -479,8 +447,6 @@ int main(int argc, char *argv[]) {
 		
 		//while there are still lines to process
 		while (total_lines > 0) {
-			//std::cout << "total lines is " << total_lines << std::endl;
-			
 			recieved = recv(newfd, buf, sizeof(buf), 0);
 			if (recieved == -1) {
 				std::cout << "ERROR at recv call " << errno << std::endl;
@@ -489,7 +455,7 @@ int main(int argc, char *argv[]) {
 			
 			for (int i = 0; i < recieved; ++i) {
 				if (buf[i] == '\0') {
-					//this is how the output is passed to the user
+					//this is how output is given to the user
 					std::cout << rec << std::endl;
 					total_lines--;
 					rec = "";
@@ -504,7 +470,6 @@ int main(int argc, char *argv[]) {
 		close(parent_sock2);
 		close(child_sock2);
 	}
-	
 	
 	//std::cout << "SUCCESSFUL EXIT OF MAIN" << std::endl;
 	return 0;
@@ -562,7 +527,7 @@ std::string GetEightLetterRep(std::string input) {
 	
 	std::string ret = input;
 	
-	for (int i = num_not_zero; i < 8; ++i) {
+	for (int i = num_not_zero; i < FIRST_MESSAGE_LEN; ++i) {
 		ret = "0"+ret;
 	}
 	
