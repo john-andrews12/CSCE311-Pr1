@@ -1,9 +1,8 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
-#include <sys/socket.h>
 #include <unistd.h>
-#include <sys/un.h>
+#include <string.h>
 #include <signal.h>
 
 std::string GetEightLetterRep(std::string input);
@@ -11,13 +10,8 @@ bool StringAContainsB(std::string a, std::string b);
 std::string RemoveStartEndSymbols(std::string input);
 std::string ToLower(std::string input);
 
-#define PARENT_PATH "unix_sock.parent"
-#define CHILD_PATH "unix_sock.child"
 #define FIRST_MESSAGE_LEN 8
 #define ENGLISH_WORD_DELIM ' '
-#define ERRNO_NO_SUCH_FILE 2
-#define ERRNO_NO_DATA_AVAILABLE 61
-#define ERRNO_CON_REF 111
 
 int main(int argc, char *argv[]) {
 	//std::cout << "ENTERING MAIN" << std::endl;
@@ -31,6 +25,21 @@ int main(int argc, char *argv[]) {
 	std::string keyword = argv[2];
 	keyword = ToLower(keyword);//we search for the keyword in a non-case sensitive context
 	
+	//created pipes in shared address space
+	int pipe_P2C[2];
+	int pipe_C2P[2];
+	int recieved, bytes_sent, len;
+	
+	if (pipe(pipe_P2C) == -1) {
+		std::cout << "pipe error" << std::endl;
+		exit(1);
+	}
+	
+	if (pipe(pipe_C2P) == -1) {
+		std::cout << "pipe error" << std::endl;
+		exit(1);
+	}
+	
 	pid_t c_pid;
 	c_pid = fork();
 	
@@ -39,55 +48,12 @@ int main(int argc, char *argv[]) {
 	}
 	else if (c_pid == 0) {
 		//std::cout << "ENTER CHILD" << std::endl;
-		
-		//here we are creating the socket that the child will read from and the parent sends to
-		struct sockaddr_storage incomming_addr;
-		socklen_t addr_size;
-		
-		int child_sock2, parent_sock2, len2, binding, connected, listening, recieved, newfd;
-		int limit = 10;
-		
-		struct sockaddr_un parent_sockaddr; 
-		struct sockaddr_un child_sockaddr; 
-		
-		memset(&child_sockaddr, 0, sizeof(struct sockaddr_un));
-		
-		child_sock2 = socket(AF_UNIX, SOCK_STREAM, 0);
-		if (child_sock2 == -1) {
-			std::cout << "SOCKET ERROR" << errno << std::endl;
-			exit(1);
-		}
-		
-		child_sockaddr.sun_family = AF_UNIX;   
-		strcpy(child_sockaddr.sun_path, CHILD_PATH); 
-		len2 = sizeof(child_sockaddr);
-
-		unlink(CHILD_PATH);
-		binding = bind(child_sock2, (struct sockaddr *) &child_sockaddr, len2);
-		if (binding == -1){
-			std::cout << "BIND ERROR"<< errno << std::endl;
-			close(child_sock2);
-			exit(1);
-		}
-		
-		//now the socket should be created and bound, next thing to do is listen for someone connecting
-		listening = listen(child_sock2, limit);
-		if(listening == -1) {
-			std::cout << "ERROR at listen call " << errno << std::endl;
-			exit(1);
-		}
-		
-		addr_size = sizeof(incomming_addr);
-		
-		newfd = accept(child_sock2, (struct sockaddr *) &incomming_addr, &addr_size);
-		if(newfd == -1) {
-			std::cout << "ERROR at accept call " << errno << std::endl;
-			exit(1);
-		}
+		close(pipe_P2C[1]);//the child doesn't write from the parent to itself
+		close(pipe_C2P[0]);//the child doesn't read from itself to the parent
 		
 		//HANDLE INPUT FROM PARENT PROCESS
 		
-		char *buf = new char[1024];
+		char buf[1024];
 		bool first_com = true;
 		
 		std::string rec = "";
@@ -98,21 +64,23 @@ int main(int argc, char *argv[]) {
 		
 		int total_lines = 0;
 		int size_rec = 0;
+		
 		//handle the initial message, that is getting the total number of expected lines
 		while (first_com) {
-			recieved = recv(newfd, buf, sizeof(buf), 0);
+			recieved = read(pipe_P2C[0], buf, 8);
 			if (recieved == -1) {
 				std::cout << "ERROR at recv call " << errno << std::endl;
 				exit(1);
 			}
 			
+			//if we will get our first message
 			if (recieved >= FIRST_MESSAGE_LEN || rec.size() + recieved >= FIRST_MESSAGE_LEN) {
 				//the first thing sent should be the number of lines, 8 digits gives 99,999,999
 				//lines of possibility and I'm assuming we aren't getting files that large
 				first_com = false;//once we get those eight bytes we have received the first com
 				
-				size_rec = rec.size();
-				//stop condition here is what we need minus what we already have
+				size_rec = rec.size();//the size going in
+				//stop condition is what is needed minus what we already have
 				for (int i = 0; i < FIRST_MESSAGE_LEN - size_rec; ++i) {
 					rec += buf[i];
 					recieved--;
@@ -140,7 +108,7 @@ int main(int argc, char *argv[]) {
 			
 			if (first_com && recieved > 0) {
 				//we haven't read a total of FIRST_MESSAGE_LEN yet so just add whats there to the
-				//accumulator and let the while(first_com) keep going
+				//accumulator and let the while(first_com) loop keep going
 				for (int i = 0; i < recieved; ++i) {
 					rec += buf[i];
 				}
@@ -149,8 +117,9 @@ int main(int argc, char *argv[]) {
 		
 		//while there are still lines to process
 		while (total_lines > 0) {
-			//read from the socket
-			recieved = recv(newfd, buf, sizeof(buf), 0);
+			//having the 1000 here helps read quickly from the buffer
+			//ie if the parent process is already sending, this allows the child to read quickly
+			recieved = read(pipe_P2C[0], buf, 1000);
 			if (recieved == -1) {
 				std::cout << "ERROR at recv call " << errno << std::endl;
 				exit(1);
@@ -168,18 +137,19 @@ int main(int argc, char *argv[]) {
 				}
 				else
 				{
-					//if this isn't the end of a line, just add the next char onto the accumulator
 					rec += buf[i];
 				}
 			}
 		}
+		
+		close(pipe_P2C[0]);//we're done reading from parent to child
 		
 		//at this point, we have read in all lines and checked them for the key word, 
 		//we have all lines that contained the key word in all_lines, 
 		//now we just need to sort them and send them back
 		
 		//sorting::
-		//implementing selection sort because I do not remember how to write quick sort immediately
+		//implementing selection sort because I do not remember how to write quick sort off the top of my head
 		std::string temp;//i say "shortest", but I mean smallest alphabetically
 		int shortest;
 		if(all_lines.size() > 0)
@@ -198,115 +168,37 @@ int main(int argc, char *argv[]) {
 		}
 		
 		//give this data back to the parent process
-		
-		//first we need to try to connect to the parent
-		bool connected_to_parent = false;
-		while (!connected_to_parent) {
-			//go through the process of making a socket and try to connect to it
-			memset(&parent_sockaddr, 0, sizeof(struct sockaddr_un));
-			
-			parent_sock2 = socket(AF_UNIX, SOCK_STREAM, 0);
-			if (parent_sock2 == -1) {
-				std::cout << "SOCKET ERROR" << errno << std::endl;
-				exit(1);
-			}
-			
-			parent_sockaddr.sun_family = AF_UNIX;   
-			strcpy(parent_sockaddr.sun_path, PARENT_PATH); 
-			len2 = sizeof(parent_sockaddr);
-			
-			connected = connect(parent_sock2, (struct sockaddr *) &parent_sockaddr, len2);
-			if (connected == -1) {
-				if (errno == ERRNO_NO_SUCH_FILE || errno == ERRNO_NO_DATA_AVAILABLE || errno == ERRNO_CON_REF) {
-					//the socket simply hasn't been created yet by the parent or it isn't recieving yet
-					close(parent_sock2);
-				}
-				else {
-					//there was some other real error
-					std::cout << "ERROR at connect call (2) " << errno << std::endl;
-					exit(1);
-				}
-			}
-			else {
-				connected_to_parent = true;
-			}
-		}
-		
 		//first we send how many lines it should be expecting
 		char const *first_message = GetEightLetterRep(std::to_string(all_lines.size())).c_str();
 		
-		int bytes_sent = send(parent_sock2, first_message, strlen(first_message), 0);
+		bytes_sent = write(pipe_C2P[1], first_message, strlen(first_message));
 		if (bytes_sent != FIRST_MESSAGE_LEN) {
-			std::cout << "ERROR maybe at send (4) " << errno << std::endl;
+			std::cout << "ERROR maybe at send (1) " << errno << std::endl;
 			exit(1);
 		}
 		
 		//now we send each and every line 
 		std::string msg = "";
-		int leng;
 		for (int i = 0; i < all_lines.size(); ++i) {
 			msg = all_lines.at(i) + '\0';
-			leng = msg.size();
+			len = msg.size();
 			char const *msgfinal = msg.c_str();
 			
-			bytes_sent = send(parent_sock2, msgfinal, leng, 0);
+			bytes_sent = write(pipe_C2P[1], msgfinal, len);
 			if (bytes_sent == -1) {
 				std::cout << "ERROR maybe at send (3) " << errno << std::endl;
 				exit(1);
 			}
 		}
 		
-		close(parent_sock2);
-		close(child_sock2);
+		close(pipe_C2P[1]);
 		//std::cout << "EXIT CHILD" << std::endl;
 	}
 	else {
 		//std::cout << "ENTER PARENT BEFORE" << std::endl;
 		signal(SIGCHLD,SIG_IGN);//we do not care about the exit status of the child
-		
-		struct sockaddr_storage incomming_addr;
-		socklen_t addr_size;
-		
-		int child_sock2, parent_sock2, len2, binding, connected, listening, newfd;
-		int limit = 10;
-		
-		struct sockaddr_un parent_sockaddr; 
-		struct sockaddr_un child_sockaddr; 
-		
-		//try to establish a connection to the child socket 
-		bool connected_to_child = false;
-		while (!connected_to_child) {
-			//go through the process of making a socket and try to connect to it
-			memset(&child_sockaddr, 0, sizeof(struct sockaddr_un));
-			
-			child_sock2 = socket(AF_UNIX, SOCK_STREAM, 0);
-			if (child_sock2 == -1) {
-				std::cout << "SOCKET ERROR" << errno << std::endl;
-				exit(1);
-			}
-			
-			child_sockaddr.sun_family = AF_UNIX;   
-			strcpy(child_sockaddr.sun_path, CHILD_PATH); 
-			len2 = sizeof(child_sockaddr);
-			
-			connected = connect(child_sock2, (struct sockaddr *) &child_sockaddr, len2);
-			if (connected == -1) {
-				if (errno == ERRNO_NO_SUCH_FILE || errno == ERRNO_NO_DATA_AVAILABLE || errno == ERRNO_CON_REF) {
-					//the socket simply hasn't been created yet by the child or it isn't recieving yet
-					close(child_sock2);
-				}
-				else {
-					//there was some other real error
-					std::cout << "ERROR at connect call (1) " << errno << std::endl;
-					exit(1);
-				}
-			}
-			else {
-				connected_to_child = true;
-			}
-		}
-		
-		//so now we open up the file of text
+		close(pipe_P2C[0]);//the parent doesn't read from the itself to the child
+		close(pipe_C2P[1]);//the parent doesn't write the child to itself
 		
 		//first thing to do is get how many lines of text there are
 		int lines_total = 0;
@@ -316,7 +208,6 @@ int main(int argc, char *argv[]) {
 		
 		std::string line;
 		std::string msg = "";
-		int len, bytes_sent;
 		
 		if (myFileHandler.is_open()) {
 			while (getline(myFileHandler, line)) {
@@ -328,9 +219,9 @@ int main(int argc, char *argv[]) {
 		//now we need to send the first message, that is, how many lines there are total
 		char const *first_message = GetEightLetterRep(std::to_string(lines_total)).c_str();
 		
-		bytes_sent = send(child_sock2, first_message, strlen(first_message), 0);
+		bytes_sent = write(pipe_P2C[1], first_message, strlen(first_message));
 		if (bytes_sent != FIRST_MESSAGE_LEN) {
-			std::cout << "ERROR maybe at send " << errno << std::endl;
+			std::cout << "ERROR maybe at send (1) " << errno << std::endl;
 			exit(1);
 		}
 		
@@ -340,90 +231,48 @@ int main(int argc, char *argv[]) {
 		if (myFileHandler.is_open()) {
 			while (getline(myFileHandler, line)) {
 				msg = line + '\0';//mark the end of a line with a '\0' char
-				len = msg.length();
+				len = msg.size();
 				char const *msgfinal = msg.c_str();
 				
-				bytes_sent = send(child_sock2, msgfinal, len, 0);
+				bytes_sent = write(pipe_P2C[1], msgfinal, len);
 				if(bytes_sent != len)
 				{
-					std::cout << "ERROR maybe at send " << errno << std::endl;
+					std::cout << "ERROR maybe at send (2) " << errno << " : " << bytes_sent << std::endl;
 					exit(1);
 				}
 			}
 			myFileHandler.close();
 		}
 		
+		close(pipe_P2C[1]);//we no longer need to send from parent to child
 		//std::cout << "EXIT PARENT BEFORE" << std::endl;
-		
-		//open up the parent port to recieve the child data
-		memset(&parent_sockaddr, 0, sizeof(struct sockaddr_un));
-		
-		parent_sock2 = socket(AF_UNIX, SOCK_STREAM, 0);
-		if (parent_sock2 == -1) {
-			std::cout << "SOCKET ERROR" << errno << std::endl;
-			exit(1);
-		}
-		
-		parent_sockaddr.sun_family = AF_UNIX;   
-		strcpy(parent_sockaddr.sun_path, PARENT_PATH); 
-		len2 = sizeof(parent_sockaddr);
-
-		unlink(PARENT_PATH);
-		binding = bind(parent_sock2, (struct sockaddr *) &parent_sockaddr, len2);
-		if (binding == -1){
-			std::cout << "BIND ERROR"<< errno << std::endl;
-			close(parent_sock2);
-			exit(1);
-		}
-		
-		listening = listen(parent_sock2, limit);
-		if(listening == -1) {
-			std::cout << "ERROR at listen call " << errno << std::endl;
-			exit(1);
-		}
-		
-		addr_size = sizeof(incomming_addr);
-		
-		newfd = accept(parent_sock2, (struct sockaddr *) &incomming_addr, &addr_size);
-		if(newfd == -1) {
-			std::cout << "ERROR at accept call " << errno << std::endl;
-			exit(1);
-		}
 		
 		//HANDLE INPUT FROM CHILD PROCESS
 		std::cout << "Lines Containing key word alphabeticaly:" << std::endl;
 		
-		char *buf = new char[1024];
+		char buf[1024];
 		bool first_com = true;
 		
 		std::string rec = "";
-		
-		int recieved;//the number of bytes we read in on every cycle
-		
 		std::vector<std::string> all_lines;
-		
-		//read from buffer as one step
-		//then we process the input (what was read) as another step
 		
 		int total_lines = 0;
 		int size_rec = 0;
+		
 		//handle the initial message, that is getting the total number of expected lines
 		while (first_com) {
-			recieved = recv(newfd, buf, sizeof(buf), 0);
+			recieved = read(pipe_C2P[0], buf, 8);
 			if (recieved == -1) {
 				std::cout << "ERROR at recv call " << errno << std::endl;
 				exit(1);
 			}
 			
 			if (recieved >= FIRST_MESSAGE_LEN || rec.size() + recieved >= FIRST_MESSAGE_LEN) {
-				//note: we have to process 'recieved' characters. We only need the first 8 for the length, all past that 
-				//still need to be handled, just separtely 
-				
 				//the first thing sent should be the number of lines, 8 digits gives 99,999,999
 				//lines of possibility and I'm assuming we aren't getting files that large
 				first_com = false;//once we get those eight bytes we have received the first com
 				
-				size_rec = rec.size();
+				size_rec = rec.size();//the size going in
 				for (int i = 0; i < FIRST_MESSAGE_LEN - size_rec; ++i) {
 					rec += buf[i];
 					recieved--;
@@ -458,7 +307,7 @@ int main(int argc, char *argv[]) {
 		
 		//while there are still lines to process
 		while (total_lines > 0) {
-			recieved = recv(newfd, buf, sizeof(buf), 0);
+			recieved = read(pipe_C2P[0], buf, 1000);
 			if (recieved == -1) {
 				std::cout << "ERROR at recv call " << errno << std::endl;
 				exit(1);
@@ -478,8 +327,7 @@ int main(int argc, char *argv[]) {
 			}
 		}
 		
-		close(parent_sock2);
-		close(child_sock2);
+		close(pipe_C2P[0]);//no longer need to read from child to parent
 	}
 	
 	//std::cout << "SUCCESSFUL EXIT OF MAIN" << std::endl;
@@ -532,7 +380,8 @@ bool StringAContainsB(std::string a, std::string b) {
 				curr_word = "";//reset for the next word
 			}
 			//otherwise we know the word was empty so the string started with the
-			//delimiter or there were multiple delimiters in a row
+			//delimiter or there were multiple delimiters in a row, either way,
+			//we don't need to do anything
 		}
 		else {
 			curr_word += tolower(curr);//again, non case sensitive

@@ -9,14 +9,16 @@ stufffff
 a
 a line full of text
 bk
-
+   this line should not get picked up for     jo!hn
+  this should though JoHn
 
 a line after an empty line
 idk what to type now john
 im really stressed about this exam on tuesday
-a john
-z john
-k john
-m john
+a john"
+z //////john/////
+k .....john
+m john!!!!!
+q *john
 
 john is literally the best huuman alive

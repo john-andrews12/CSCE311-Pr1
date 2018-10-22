@@ -1,0 +1,81 @@
+Script started on Mon Oct 22 01:21:03 2018
+[?1034hbash-3.2$ pskill 3727ps[Kssh -p 222 jha2@l-1d43-12.cse.sc.edu[C[C[C[C[C[C[C[C[C[Clsl[Kssh -p 222 jha2@l-1d43-12.cse.sc.edu[C[C[C[C[C[C[C[C[C[Cps[Kkill 3727ps[K[K./UnixDomSock ./big_text.txt beyond[C[C[1@t[1@i[1@m[1@e[1@ [C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C
+Lines Containing key word alphabeticaly:
+"I have had one or two little scores of my own to settle with Mr. John Clay," said Holmes. "I have been at some small expense over this matter, which I shall expect the bank to refund, but beyond that I am amply repaid by having had an experience which is in many ways unique, and by hearing the very remarkable narrative of the Red-headed League."
+"No, it is not selfishness or conceit," said he, answering, as was his wont, my thoughts rather than my words. "If I claim full justice for my art, it is because it is an impersonal thing--a thing beyond myself. Crime is common. Logic is rare. Therefore it is upon the logic rather than upon the crime that you should dwell. You have degraded what should have been a course of lectures into a series of tales."
+"We shall not send an emigrant beyond the Mississippi in a hundred
+"When I arrived at the house," continued Holmes, "I at once went very carefully round it to observe if there were any traces in the snow which might help me. I knew that none had fallen since the evening before, and also that there had been a strong frost to preserve impressions. I passed along the tradesmen's path, but found it all trampled down and indistinguishable. Just beyond it, however, at the far side of the kitchen door, a woman had stood and talked with a man, whose round impressions on one side showed that he had a wooden leg. I could even tell that they had been disturbed, for the woman had run back swiftly to the door, as was shown by the deep toe and light heel marks, while Wooden-leg had waited a little, and then had gone away. I thought at the time that this might be the maid and her sweetheart, of whom you had already spoken to me, and inquiry showed it was so. I passed round the garden without seeing anything more than random tracks, which I took to be the police; but when I got into the stable lane a very long and complex story was written in the snow in front of me.
+"Yes, and I confess that the contents startled me beyond measure. Have you good authority for what you say?"
+=Iowa and Minnesota.=--To the southwest of Wisconsin beyond the
+=The Western Routes.=--Four main routes led into the country beyond the
+He put a hand on either side of his head and rocked himself to and fro, droning to himself like a child whose grief has got beyond words.
+It was not very long before my friend's prediction was fulfilled. A fortnight went by, during which I frequently found my thoughts turning in her direction and wondering what strange side-alley of human experience this lonely woman had strayed into. The unusual salary, the curious conditions, the light duties, all pointed to something abnormal, though whether a fad or a plot, or whether the man were a philanthropist or a villain, it was quite beyond my powers to determine. As to Holmes, I observed that he sat frequently for half an hour on end, with knitted brows and an abstracted air, but he swept the matter away with a wave of his hand when I mentioned it. "Data! data! data!" he cried impatiently. "I can't make bricks without clay." And yet he would always wind up by muttering that no sister of his should ever have accepted such a situation.
+Pennsylvania; and he carried every state south of Maryland and beyond
+The man burst into a hearty laugh. "They might be useful to me as relics of my adventure," said he, "but beyond that I can hardly see what use the disjecta membra of my late acquaintance are going to be to me. No, sir, I think that, with your permission, I will confine my attentions to the excellent bird which I perceive upon the sideboard."
+and sustain a plantation beyond the seas. Sometimes the proprietor
+beyond human power. It petitioned the king to interpose on behalf of the
+beyond the mountains.
+beyond the mountains. He pressed upon the governor of Virginia a project
+by their armies and their government, spread their dominion beyond the
+destiny of America. Circumstances beyond the control of popular
+far wrong; but before the lapse of half that time there appeared beyond
+from a region beyond the mountains, peopled by men and women from all
+had to Spanish territory beyond the Sabine River.
+his mind on war and peace were settled by events beyond his own control.
+into the Atlantic to the Ohio River and beyond into the Northwest
+leaders in the great republican commonwealth beyond the seas. Travelers,
+military talent from beyond the seas. Baron Steuben, well schooled in
+not every day as much as I do, the next day shall be set beyond the
+persons accused of crimes or trial beyond the seas, and beseeching the
+produced "the great event." An unexpected collision beyond the thought
+subdue the essentially English population beyond the Atlantic made
+the sands of Arabia. The Teutonic tribes, from their home beyond the
+their fortunes beyond the Appalachians, so now Kit Carson, James Bowie,
+towns laid out beyond the Merrimac River by emigrants from Massachusetts
+were unable to pay for their passage is established beyond the shadow of
+
+real	0m0.272s
+user	0m0.133s
+sys	0m0.255s
+bash-3.2$ time ./PI[KipesSol ./big_text.txt beyond
+Lines Containing key word alphabeticaly:
+"I have had one or two little scores of my own to settle with Mr. John Clay," said Holmes. "I have been at some small expense over this matter, which I shall expect the bank to refund, but beyond that I am amply repaid by having had an experience which is in many ways unique, and by hearing the very remarkable narrative of the Red-headed League."
+"No, it is not selfishness or conceit," said he, answering, as was his wont, my thoughts rather than my words. "If I claim full justice for my art, it is because it is an impersonal thing--a thing beyond myself. Crime is common. Logic is rare. Therefore it is upon the logic rather than upon the crime that you should dwell. You have degraded what should have been a course of lectures into a series of tales."
+"We shall not send an emigrant beyond the Mississippi in a hundred
+"When I arrived at the house," continued Holmes, "I at once went very carefully round it to observe if there were any traces in the snow which might help me. I knew that none had fallen since the evening before, and also that there had been a strong frost to preserve impressions. I passed along the tradesmen's path, but found it all trampled down and indistinguishable. Just beyond it, however, at the far side of the kitchen door, a woman had stood and talked with a man, whose round impressions on one side showed that he had a wooden leg. I could even tell that they had been disturbed, for the woman had run back swiftly to the door, as was shown by the deep toe and light heel marks, while Wooden-leg had waited a little, and then had gone away. I thought at the time that this might be the maid and her sweetheart, of whom you had already spoken to me, and inquiry showed it was so. I passed round the garden without seeing anything more than random tracks, which I took to be the police; but when I got into the stable lane a very long and complex story was written in the snow in front of me.
+"Yes, and I confess that the contents startled me beyond measure. Have you good authority for what you say?"
+=Iowa and Minnesota.=--To the southwest of Wisconsin beyond the
+=The Western Routes.=--Four main routes led into the country beyond the
+He put a hand on either side of his head and rocked himself to and fro, droning to himself like a child whose grief has got beyond words.
+It was not very long before my friend's prediction was fulfilled. A fortnight went by, during which I frequently found my thoughts turning in her direction and wondering what strange side-alley of human experience this lonely woman had strayed into. The unusual salary, the curious conditions, the light duties, all pointed to something abnormal, though whether a fad or a plot, or whether the man were a philanthropist or a villain, it was quite beyond my powers to determine. As to Holmes, I observed that he sat frequently for half an hour on end, with knitted brows and an abstracted air, but he swept the matter away with a wave of his hand when I mentioned it. "Data! data! data!" he cried impatiently. "I can't make bricks without clay." And yet he would always wind up by muttering that no sister of his should ever have accepted such a situation.
+Pennsylvania; and he carried every state south of Maryland and beyond
+The man burst into a hearty laugh. "They might be useful to me as relics of my adventure," said he, "but beyond that I can hardly see what use the disjecta membra of my late acquaintance are going to be to me. No, sir, I think that, with your permission, I will confine my attentions to the excellent bird which I perceive upon the sideboard."
+and sustain a plantation beyond the seas. Sometimes the proprietor
+beyond human power. It petitioned the king to interpose on behalf of the
+beyond the mountains.
+beyond the mountains. He pressed upon the governor of Virginia a project
+by their armies and their government, spread their dominion beyond the
+destiny of America. Circumstances beyond the control of popular
+far wrong; but before the lapse of half that time there appeared beyond
+from a region beyond the mountains, peopled by men and women from all
+had to Spanish territory beyond the Sabine River.
+his mind on war and peace were settled by events beyond his own control.
+into the Atlantic to the Ohio River and beyond into the Northwest
+leaders in the great republican commonwealth beyond the seas. Travelers,
+military talent from beyond the seas. Baron Steuben, well schooled in
+not every day as much as I do, the next day shall be set beyond the
+persons accused of crimes or trial beyond the seas, and beseeching the
+produced "the great event." An unexpected collision beyond the thought
+subdue the essentially English population beyond the Atlantic made
+the sands of Arabia. The Teutonic tribes, from their home beyond the
+their fortunes beyond the Appalachians, so now Kit Carson, James Bowie,
+towns laid out beyond the Merrimac River by emigrants from Massachusetts
+were unable to pay for their passage is established beyond the shadow of
+
+real	0m0.055s
+user	0m0.033s
+sys	0m0.014s
+bash-3.2$ exit
+exit
+
+Script done on Mon Oct 22 01:21:52 2018
