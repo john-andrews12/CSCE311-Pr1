@@ -10,7 +10,7 @@ a
 a line full of text
 bk
    this line should not get picked up for     jo!hn
-
+  this should though JoHn
 
 a line after an empty line
 idk what to type now john
