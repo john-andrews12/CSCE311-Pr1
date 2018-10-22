@@ -16,7 +16,6 @@ using namespace std;
 typedef map<string, set<string>> MapData;
 
 #define NUM_THREADS 4
-#define SHM_SIZE 10000
 
 //Struct used as a parameter for the threads.
 struct line_data
@@ -24,6 +23,40 @@ struct line_data
 	set<string> lines;
     MapData my_map;
 };
+
+//Re-using John's function
+string RemoveStartEndSymbols(string input) 
+{
+        string input_lowercase = "";
+	string to_add = "";
+        for (int i = 0; i < input.size(); ++i)
+        {
+            input_lowercase += tolower(input.at(i), locale());
+        }
+	
+	for (int i = 0; i < input_lowercase.size(); ++i) 
+    {
+		//loop until we find the first instance of a valid character
+		if (isalnum(input_lowercase.at(i))) 
+        {
+			to_add = input_lowercase.substr(i);
+			break;
+		}
+	}
+	
+	//note we are going backwards through the string now
+	for (int i = to_add.size()-1; i >= 0; --i) 
+    {
+		//loop until we find a valid character
+		if (isalnum(to_add.at(i))) 
+        {
+			to_add = to_add.substr(0,i+1);
+			break;
+		}
+	}
+	
+	return to_add;
+}
 
 //This function, called by each of the four threads,
 //maps all of the words in each section of the input text such that
@@ -51,8 +84,10 @@ void *Mapper(void *threadarg)
             //must be a sequence of alphabetical characters, potentially with
             //an apostrophe or a hyphen. Also, convert all letters to lowercase
             //so there's no distinction between strings like "Your" and "your".
+            /*
             if (isalpha(word.at(0)))
             {
+            
                 string temp = "";
                 temp += tolower(word.at(0), locale());
                 for (unsigned int i=1; i < word.length(); i++)
@@ -70,6 +105,8 @@ void *Mapper(void *threadarg)
                         temp += word.at(i);
                     }
                 }
+            */
+            string temp = RemoveStartEndSymbols(word);
                 //Once we have a token representing a word, check if it's
                 //already in the map. If it is, add the current line to the
                 //set associated with that word.
@@ -84,7 +121,7 @@ void *Mapper(void *threadarg)
                     MapData::iterator mit = ret_val.find(temp);
                     mit->second.insert(current_line);
                 }
-            }
+            //}
         }
     }
 
@@ -123,6 +160,15 @@ set<string> Splitter(int numOfLines, vector<string> v, int section)
 	return ret_val;
 }
 
+long GetFileSize(string fileName)
+{
+    FILE *p_file = NULL;
+    p_file = fopen(fileName.c_str(),"rb");
+    fseek(p_file,0,SEEK_END);
+    long size = ftell(p_file);
+    fclose(p_file);
+    return size;
+}
 
 int main(int argc, char *argv[])
 {
@@ -135,7 +181,7 @@ int main(int argc, char *argv[])
     string fileName = argv[1];
     string keyword = argv[2];
     ifstream myFile(fileName.c_str());
-	
+    const long SHM_SIZE = GetFileSize(fileName);	
     //Pointer to shared memory.
     char *segptr;
 	
@@ -180,6 +226,7 @@ int main(int argc, char *argv[])
 	
 	//shmat attaches this shared memory to a pointer.
 	segptr = (char*) shmat(shmid,(void*)0,0);
+
 	if(segptr == (char*) -1)
 	{
 		perror("shmat");
@@ -187,8 +234,9 @@ int main(int argc, char *argv[])
 	}
 	
 	//Puts the text from the input file in shared memory.
-	segptr = (char*) inpL.c_str();
-	
+	//segptr = (char*) inpL.c_str();
+	strncpy(segptr,inpL.c_str(),SHM_SIZE);
+    
 	//Creates the child process that will perform multithreading and MapReduce.
 	pid_t pid = fork();
 	if (pid == -1)
@@ -208,12 +256,12 @@ int main(int argc, char *argv[])
         }
 		
         //Creates an array of threads and corresponding structs
-	//to be passed to the Mapper function.
+        //to be passed to the Mapper function.
         pthread_t threads[NUM_THREADS];
         pthread_attr_t attr;
         struct line_data ld[NUM_THREADS];
     
-	int rc;
+        int rc;
         unsigned int k;
 	    
         pthread_attr_init(&attr);
@@ -304,13 +352,14 @@ int main(int argc, char *argv[])
         //Change the string in shared memory from the input file's text
         //to the final specified lines so that the parent process can
         //print them.
-        segptr = (char *) s.c_str();
-        
-        //This correctly outputs the lines in which the keyword appears.
-        cout << segptr << endl;
+        strncpy(segptr,s.c_str(),SHM_SIZE);
 		
         //shmdt detaches this process from shared memory.
-        shmdt(segptr);
+        if (shmdt(segptr) == -1)
+        {
+            perror("shmdt");
+            exit(1);
+        }
         exit(EXIT_SUCCESS);
     }
 
@@ -319,10 +368,13 @@ int main(int argc, char *argv[])
         //Wait for the child process to exit successfully.
         wait(NULL);
         
-        //This incorrectly outputs the original text file that was placed into
-        //shared memory.
+        //This correctly outputs the lines where the keyword appears.
         printf("Data written in memory:\n %s",segptr);
-        shmdt(segptr);
+        if (shmdt(segptr) == -1)
+        {
+            perror("shmdt");
+            exit(1);
+        }
 	    
         //shmctl destroys the shared memory. 
         shmctl(shmid,IPC_RMID,NULL);
@@ -330,3 +382,6 @@ int main(int argc, char *argv[])
     
     return 0;
 }
+
+
+
