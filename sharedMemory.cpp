@@ -27,7 +27,7 @@ struct line_data
 //Re-using John's function
 string RemoveStartEndSymbols(string input) 
 {
-        string input_lowercase = "";
+    string input_lowercase = "";
 	string to_add = "";
         for (int i = 0; i < input.size(); ++i)
         {
@@ -345,7 +345,8 @@ int main(int argc, char *argv[])
         }
         else
         {
-            cout << "Keyword not found" << endl;
+            string not_found = "keyword not found";
+            strncpy(segptr, not_found.c_str(), SHM_SIZE);
             exit(1);
         }
 	    
