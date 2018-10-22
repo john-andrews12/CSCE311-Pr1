@@ -581,10 +581,3 @@ std::string ToLower(std::string input) {
 	
 	return ret;
 }
-
-
-
-
-
-
-
