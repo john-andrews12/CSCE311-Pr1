@@ -4,6 +4,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <sys/un.h>
+#include <signal.h>
 
 std::string GetEightLetterRep(std::string input);
 bool StringAContainsB(std::string a, std::string b);
@@ -14,6 +15,7 @@ bool StringAContainsB(std::string a, std::string b);
 #define ENGLISH_WORD_DELIM ' '
 #define ERRNO_NO_SUCH_FILE 2
 #define ERRNO_NO_DATA_AVAILABLE 61
+#define ERRNO_CON_REF 111
 
 int main(int argc, char *argv[]) {
 	//std::cout << "ENTERING MAIN" << std::endl;
@@ -212,7 +214,7 @@ int main(int argc, char *argv[]) {
 			
 			connected = connect(parent_sock2, (struct sockaddr *) &parent_sockaddr, len2);
 			if (connected == -1) {
-				if (errno == ERRNO_NO_SUCH_FILE || errno == ERRNO_NO_DATA_AVAILABLE) {
+				if (errno == ERRNO_NO_SUCH_FILE || errno == ERRNO_NO_DATA_AVAILABLE || errno == ERRNO_CON_REF) {
 					//the socket simply hasn't been created yet by the parent or it isn't recieving yet
 					close(parent_sock2);
 				}
@@ -286,7 +288,7 @@ int main(int argc, char *argv[]) {
 			
 			connected = connect(child_sock2, (struct sockaddr *) &child_sockaddr, len2);
 			if (connected == -1) {
-				if (errno == ERRNO_NO_SUCH_FILE || errno == ERRNO_NO_DATA_AVAILABLE) {
+				if (errno == ERRNO_NO_SUCH_FILE || errno == ERRNO_NO_DATA_AVAILABLE || errno == ERRNO_CON_REF) {
 					//the socket simply hasn't been created yet by the child or it isn't recieving yet
 					close(child_sock2);
 				}

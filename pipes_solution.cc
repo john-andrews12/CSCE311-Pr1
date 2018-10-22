@@ -2,6 +2,8 @@
 #include <fstream>
 #include <vector>
 #include <unistd.h>
+#include <string.h>
+#include <signal.h>
 
 std::string GetEightLetterRep(std::string input);
 bool StringAContainsB(std::string a, std::string b);
