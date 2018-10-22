@@ -345,7 +345,7 @@ int main(int argc, char *argv[])
         }
         else
         {
-            string not_found = "keyword not found";
+            string not_found = "keyword not found\n";
             strncpy(segptr, not_found.c_str(), SHM_SIZE);
             exit(1);
         }
