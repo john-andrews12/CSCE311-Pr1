@@ -26,7 +26,6 @@ int main(int argc, char *argv[]) {
 	std::string filepath = argv[1];
 	std::string keyword = argv[2];
 	
-	
 	pid_t c_pid;
 	c_pid = fork();
 	
@@ -36,6 +35,7 @@ int main(int argc, char *argv[]) {
 	else if (c_pid == 0) {
 		//std::cout << "ENTER CHILD" << std::endl;
 		
+		//here we are creating the socket that the child will read from and the parent sends to
 		struct sockaddr_storage incomming_addr;
 		socklen_t addr_size;
 		
@@ -65,6 +65,7 @@ int main(int argc, char *argv[]) {
 			exit(1);
 		}
 		
+		//now the socket should be created and bound, next thing to do is listen for someone connecting
 		listening = listen(child_sock2, limit);
 		if(listening == -1) {
 			std::cout << "ERROR at listen call " << errno << std::endl;
@@ -91,7 +92,7 @@ int main(int argc, char *argv[]) {
 		//then we process the input (what was read) as another step
 		
 		int total_lines = 0;
-		
+		int size_rec = 0;
 		//handle the initial message, that is getting the total number of expected lines
 		while (first_com) {
 			recieved = recv(newfd, buf, sizeof(buf), 0);
@@ -101,12 +102,13 @@ int main(int argc, char *argv[]) {
 			}
 			
 			if (recieved >= FIRST_MESSAGE_LEN || rec.size() + recieved >= FIRST_MESSAGE_LEN) {
-				
 				//the first thing sent should be the number of lines, 8 digits gives 99,999,999
 				//lines of possibility and I'm assuming we aren't getting files that large
 				first_com = false;//once we get those eight bytes we have received the first com
 				
-				for (int i = rec.size(); i < FIRST_MESSAGE_LEN; ++i) {
+				size_rec = rec.size();
+				//stop condition here is what we need minus what we already have
+				for (int i = 0; i < FIRST_MESSAGE_LEN - size_rec; ++i) {
 					rec += buf[i];
 					recieved--;
 				}
@@ -114,12 +116,13 @@ int main(int argc, char *argv[]) {
 				total_lines = stoi(rec);
 				rec = "";
 				
-				//if there is still characters to process, note the stop condition
+				//if there are still characters to process - note the stop condition
 				for (int i = FIRST_MESSAGE_LEN; recieved > 0; ++i) {
 					if (buf[i] == '\0') {
 						if (StringAContainsB(rec,keyword)) {
 							all_lines.push_back(rec);
 						}
+						total_lines--;
 						rec = "";
 					}
 					else
@@ -141,6 +144,7 @@ int main(int argc, char *argv[]) {
 		
 		//while there are still lines to process
 		while (total_lines > 0) {
+			//read from the socket
 			recieved = recv(newfd, buf, sizeof(buf), 0);
 			if (recieved == -1) {
 				std::cout << "ERROR at recv call " << errno << std::endl;
@@ -159,6 +163,7 @@ int main(int argc, char *argv[]) {
 				}
 				else
 				{
+					//if this isn't the end of a line, just add the next char onto the accumulator
 					rec += buf[i];
 				}
 			}
@@ -225,7 +230,6 @@ int main(int argc, char *argv[]) {
 		//first we send how many lines it should be expecting
 		char const *first_message = GetEightLetterRep(std::to_string(all_lines.size())).c_str();
 		
-		//we hard enter the 8 because we define the first message length to be 8
 		int bytes_sent = send(parent_sock2, first_message, strlen(first_message), 0);
 		if (bytes_sent != FIRST_MESSAGE_LEN) {
 			std::cout << "ERROR maybe at send (4) " << errno << std::endl;
@@ -253,6 +257,7 @@ int main(int argc, char *argv[]) {
 	}
 	else {
 		//std::cout << "ENTER PARENT BEFORE" << std::endl;
+		signal(SIGCHLD,SIG_IGN);//we do not care about the exit status of the child
 		
 		struct sockaddr_storage incomming_addr;
 		socklen_t addr_size;
@@ -396,7 +401,7 @@ int main(int argc, char *argv[]) {
 		//then we process the input (what was read) as another step
 		
 		int total_lines = 0;
-		
+		int size_rec = 0;
 		//handle the initial message, that is getting the total number of expected lines
 		while (first_com) {
 			recieved = recv(newfd, buf, sizeof(buf), 0);
@@ -413,7 +418,8 @@ int main(int argc, char *argv[]) {
 				//lines of possibility and I'm assuming we aren't getting files that large
 				first_com = false;//once we get those eight bytes we have received the first com
 				
-				for (int i = rec.size(); i < FIRST_MESSAGE_LEN; ++i) {
+				size_rec = rec.size();
+				for (int i = 0; i < FIRST_MESSAGE_LEN - size_rec; ++i) {
 					rec += buf[i];
 					recieved--;
 				}

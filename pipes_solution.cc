@@ -1,24 +1,13 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
-#include <sys/socket.h>
 #include <unistd.h>
-#include <sys/un.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/wait.h>
-#include <sys/types.h>
 
 std::string GetEightLetterRep(std::string input);
 bool StringAContainsB(std::string a, std::string b);
 
-#define PARENT_PATH "unix_sock.parent"
-#define CHILD_PATH "unix_sock.child"
 #define FIRST_MESSAGE_LEN 8
 #define ENGLISH_WORD_DELIM ' '
-#define ERRNO_NO_SUCH_FILE 2
-#define ERRNO_NO_DATA_AVAILABLE 61
 
 int main(int argc, char *argv[]) {
 	//std::cout << "ENTERING MAIN" << std::endl;
@@ -34,8 +23,7 @@ int main(int argc, char *argv[]) {
 	//created pipes in shared address space
 	int pipe_P2C[2];
 	int pipe_C2P[2];
-	//char *buf;
-	int recieved;
+	int recieved, bytes_sent, len;
 	
 	if (pipe(pipe_P2C) == -1) {
 		std::cout << "pipe error" << std::endl;
@@ -55,8 +43,8 @@ int main(int argc, char *argv[]) {
 	}
 	else if (c_pid == 0) {
 		//std::cout << "ENTER CHILD" << std::endl;
-		
-		//start accepting on the pipe from the parent to the child
+		close(pipe_P2C[1]);//the child doesn't write from the parent to itself
+		close(pipe_C2P[0]);//the child doesn't read from itself to the parent
 		
 		//HANDLE INPUT FROM PARENT PROCESS
 		
@@ -80,12 +68,14 @@ int main(int argc, char *argv[]) {
 				exit(1);
 			}
 			
+			//if we will get our first message
 			if (recieved >= FIRST_MESSAGE_LEN || rec.size() + recieved >= FIRST_MESSAGE_LEN) {
 				//the first thing sent should be the number of lines, 8 digits gives 99,999,999
 				//lines of possibility and I'm assuming we aren't getting files that large
 				first_com = false;//once we get those eight bytes we have received the first com
 				
 				size_rec = rec.size();//the size going in
+				//stop condition is what is needed minus what we already have
 				for (int i = 0; i < FIRST_MESSAGE_LEN - size_rec; ++i) {
 					rec += buf[i];
 					recieved--;
@@ -94,12 +84,13 @@ int main(int argc, char *argv[]) {
 				total_lines = stoi(rec);
 				rec = "";
 				
-				//if there is still characters to process, note the stop condition
+				//if there are still characters to process - note the stop condition
 				for (int i = FIRST_MESSAGE_LEN; recieved > 0; ++i) {
 					if (buf[i] == '\0') {
 						if (StringAContainsB(rec,keyword)) {
 							all_lines.push_back(rec);
 						}
+						total_lines--;
 						rec = "";
 					}
 					else
@@ -112,7 +103,7 @@ int main(int argc, char *argv[]) {
 			
 			if (first_com && recieved > 0) {
 				//we haven't read a total of FIRST_MESSAGE_LEN yet so just add whats there to the
-				//accumulator and let the while(first_com) keep going
+				//accumulator and let the while(first_com) loop keep going
 				for (int i = 0; i < recieved; ++i) {
 					rec += buf[i];
 				}
@@ -121,6 +112,8 @@ int main(int argc, char *argv[]) {
 		
 		//while there are still lines to process
 		while (total_lines > 0) {
+			//having the 1000 here helps read quickly from the buffer
+			//ie if the parent process is already sending, this allows the child to read quickly
 			recieved = read(pipe_P2C[0], buf, 1000);
 			if (recieved == -1) {
 				std::cout << "ERROR at recv call " << errno << std::endl;
@@ -144,13 +137,13 @@ int main(int argc, char *argv[]) {
 			}
 		}
 		
-		close(pipe_P2C[0]);
+		close(pipe_P2C[0]);//we're done reading from parent to child
 		//at this point, we have read in all lines and checked them for the key word, 
 		//we have all lines that contained the key word in all_lines, 
 		//now we just need to sort them and send them back
 		
 		//sorting::
-		//implementing selection sort because I do not remember how to write quick sort immediately
+		//implementing selection sort because I do not remember how to write quick sort off the top of my head
 		std::string temp;//i say "shortest", but I mean smallest alphabetically
 		int shortest;
 		if(all_lines.size() > 0)
@@ -168,12 +161,7 @@ int main(int argc, char *argv[]) {
 			}
 		}
 		
-		/*for (int i = 0; i < all_lines.size(); ++i) {
-			std::cout << all_lines.at(i) << std::endl;
-		}*/
-		
 		//give this data back to the parent process
-		int bytes_sent;
 		//first we send how many lines it should be expecting
 		char const *first_message = GetEightLetterRep(std::to_string(all_lines.size())).c_str();
 		
@@ -185,13 +173,12 @@ int main(int argc, char *argv[]) {
 		
 		//now we send each and every line 
 		std::string msg = "";
-		int leng;
 		for (int i = 0; i < all_lines.size(); ++i) {
 			msg = all_lines.at(i) + '\0';
-			leng = msg.size();
+			len = msg.size();
 			char const *msgfinal = msg.c_str();
 			
-			bytes_sent = write(pipe_C2P[1], msgfinal, leng);
+			bytes_sent = write(pipe_C2P[1], msgfinal, len);
 			if (bytes_sent == -1) {
 				std::cout << "ERROR maybe at send (3) " << errno << std::endl;
 				exit(1);
@@ -203,8 +190,9 @@ int main(int argc, char *argv[]) {
 	}
 	else {
 		//std::cout << "ENTER PARENT BEFORE" << std::endl;
-		
-		//so now we open up the file of text
+		signal(SIGCHLD,SIG_IGN);//we do not care about the exit status of the child
+		close(pipe_P2C[0]);//the parent doesn't read from the itself to the child
+		close(pipe_C2P[1]);//the parent doesn't write the child to itself
 		
 		//first thing to do is get how many lines of text there are
 		int lines_total = 0;
@@ -214,7 +202,6 @@ int main(int argc, char *argv[]) {
 		
 		std::string line;
 		std::string msg = "";
-		int len, bytes_sent;
 		
 		if (myFileHandler.is_open()) {
 			while (getline(myFileHandler, line)) {
@@ -251,7 +238,7 @@ int main(int argc, char *argv[]) {
 			myFileHandler.close();
 		}
 		
-		close(pipe_P2C[1]);
+		close(pipe_P2C[1]);//we no longer need to send from parent to child
 		//std::cout << "EXIT PARENT BEFORE" << std::endl;
 		
 		//HANDLE INPUT FROM CHILD PROCESS
@@ -291,9 +278,8 @@ int main(int argc, char *argv[]) {
 				//if there is still characters to process, note the stop condition
 				for (int i = FIRST_MESSAGE_LEN; recieved > 0; ++i) {
 					if (buf[i] == '\0') {
-						if (StringAContainsB(rec,keyword)) {
-							all_lines.push_back(rec);
-						}
+						std::cout << rec << std::endl;
+						total_lines--;
 						rec = "";
 					}
 					else
@@ -335,7 +321,7 @@ int main(int argc, char *argv[]) {
 			}
 		}
 		
-		close(pipe_C2P[0]);
+		close(pipe_C2P[0]);//no longer need to read from child to parent
 	}
 	
 	//std::cout << "SUCCESSFUL EXIT OF MAIN" << std::endl;
@@ -361,7 +347,8 @@ bool StringAContainsB(std::string a, std::string b) {
 				curr_word = "";//reset for the next word
 			}
 			//otherwise we know the word was empty so the string started with the
-			//delimiter or there were multiple delimiters in a row
+			//delimiter or there were multiple delimiters in a row, either way,
+			//we don't need to do anything
 		}
 		else {
 			curr_word += curr;
