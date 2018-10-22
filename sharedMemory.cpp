@@ -24,38 +24,40 @@ struct line_data
     MapData my_map;
 };
 
-//Re-using John's function
+//Re-using John's function from pipes_solution.cc
 string RemoveStartEndSymbols(string input) 
 {
     string input_lowercase = "";
-	string to_add = "";
-        for (int i = 0; i < input.size(); ++i)
-        {
-            input_lowercase += tolower(input.at(i), locale());
-        }
+    string to_add = "";
+    
+    //Convert to lowercase to enforce case-insensitivity.
+    for (int i = 0; i < input.size(); ++i)
+    {
+        input_lowercase += tolower(input.at(i), locale());
+    }
 	
-	for (int i = 0; i < input_lowercase.size(); ++i) 
+    for (int i = 0; i < input_lowercase.size(); ++i) 
     {
 		//loop until we find the first instance of a valid character
-		if (isalnum(input_lowercase.at(i))) 
+        if (isalnum(input_lowercase.at(i))) 
         {
-			to_add = input_lowercase.substr(i);
-			break;
+            to_add = input_lowercase.substr(i);
+            break;
 		}
 	}
 	
-	//note we are going backwards through the string now
-	for (int i = to_add.size()-1; i >= 0; --i) 
+    //note we are going backwards through the string now
+    for (int i = to_add.size()-1; i >= 0; --i) 
     {
-		//loop until we find a valid character
-		if (isalnum(to_add.at(i))) 
+        //loop until we find a valid character
+        if (isalnum(to_add.at(i))) 
         {
-			to_add = to_add.substr(0,i+1);
-			break;
-		}
-	}
-	
-	return to_add;
+            to_add = to_add.substr(0,i+1);
+            break;
+        }
+    }
+    
+    return to_add;
 }
 
 //This function, called by each of the four threads,
@@ -80,48 +82,23 @@ void *Mapper(void *threadarg)
         istringstream iss(current_line);
         while (iss >> word)
         {
-            //We only care about tokens that are actually words, so they
-            //must be a sequence of alphabetical characters, potentially with
-            //an apostrophe or a hyphen. Also, convert all letters to lowercase
-            //so there's no distinction between strings like "Your" and "your".
-            /*
-            if (isalpha(word.at(0)))
-            {
-            
-                string temp = "";
-                temp += tolower(word.at(0), locale());
-                for (unsigned int i=1; i < word.length(); i++)
-                {
-                    if (isalpha(word.at(i)))
-                    {
-                        temp += tolower(word.at(i), locale());
-                    }
-                    //Note that if the final character is not alphabetical,
-                    //we ignore it so that strings like "your" and "your," will
-                    //both be added to the map as just "your"
-                    else if ((word.at(i) == '\'' || word.at(i) == '-')
-                              && i != (word.length() - 1))
-                    {
-                        temp += word.at(i);
-                    }
-                }
-            */
+            //Parse each token to get each word as defined by the
+            //RemoveStartEndSymbols function.
             string temp = RemoveStartEndSymbols(word);
-                //Once we have a token representing a word, check if it's
-                //already in the map. If it is, add the current line to the
-                //set associated with that word.
-                if (ret_val.count(temp) == 0)
-                {
-                    s_temp.insert(current_line);
-                    ret_val.insert(pair<string, set<string>>(temp, s_temp));
-                    s_temp.clear();
-                }
-                else
-                {
-                    MapData::iterator mit = ret_val.find(temp);
-                    mit->second.insert(current_line);
-                }
-            //}
+            
+            //Once we have a word, check if it's already in the map
+            //If it is, add the current line to the set paired with that word.
+            if (ret_val.count(temp) == 0)
+            {
+                s_temp.insert(current_line);
+                ret_val.insert(pair<string, set<string>>(temp, s_temp));
+                s_temp.clear();
+            }
+            else
+            {
+                MapData::iterator mit = ret_val.find(temp);
+                mit->second.insert(current_line);
+            }
         }
     }
 
@@ -134,7 +111,7 @@ void *Mapper(void *threadarg)
 //This function splits the input from the text file into equal sections,
 //one for each thread. The idea is that each thread will map its own section
 //of the file, and then the main thread will reduce those maps into one map.
-//The reason I have this function returning a set is because the strings will
+//The reason this function is returning a set is because the strings will
 //automatically be sorted alphabetically.
 set<string> Splitter(int numOfLines, vector<string> v, int section)
 {
@@ -160,6 +137,9 @@ set<string> Splitter(int numOfLines, vector<string> v, int section)
 	return ret_val;
 }
 
+//This functions allows us to get the size of the input file
+//which is then used to define the size of the shared memory segment
+//to be created.
 long GetFileSize(string fileName)
 {
     FILE *p_file = NULL;
@@ -181,7 +161,10 @@ int main(int argc, char *argv[])
     string fileName = argv[1];
     string keyword = argv[2];
     ifstream myFile(fileName.c_str());
+    
+    //Size of the shared memory segment.
     const long SHM_SIZE = GetFileSize(fileName);	
+    
     //Pointer to shared memory.
     char *segptr;
 	
@@ -345,6 +328,8 @@ int main(int argc, char *argv[])
         }
         else
         {
+            //If the string is not found, place an error message into shared 
+            //memory.
             string not_found = "keyword not found\n";
             strncpy(segptr, not_found.c_str(), SHM_SIZE);
             exit(1);
@@ -383,6 +368,3 @@ int main(int argc, char *argv[])
     
     return 0;
 }
-
-
-
