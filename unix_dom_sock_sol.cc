@@ -12,7 +12,6 @@ std::string ToLower(std::string input);
 
 #define PARENT_PATH "unix_sock.parent"
 #define CHILD_PATH "unix_sock.child"
-#define FIRST_MESSAGE_LEN 8
 #define END_OF_LINE_CHAR '\0'
 #define ENGLISH_WORD_DELIM ' '
 #define ERRNO_NO_SUCH_FILE 2
