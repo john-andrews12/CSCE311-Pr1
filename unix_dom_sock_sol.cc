@@ -97,7 +97,6 @@ int main(int argc, char *argv[]) {
 		//then we process the input (what was read) as another step
 		
 		int total_lines = 0;
-		int size_rec = 0;
 		//handle the initial message, that is getting the total number of expected lines
 		while (first_com) {
 			//read from the socket
@@ -390,7 +389,6 @@ int main(int argc, char *argv[]) {
 		//then we process the input (what was read) as another step
 		
 		int total_lines = 0;
-		int size_rec = 0;
 		//handle the initial message, that is getting the total number of expected lines
 		while (first_com) {
 			recieved = recv(newfd, buf, sizeof(buf), 0);

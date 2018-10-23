@@ -25,8 +25,9 @@ SharedMemorySol). All of the executables have form:
 	./<executable-name> ./<filename> <keyword> 
 
 Here, executable-name is the name of the executable you are trying to run. The
-filename is the name of a text file located IN THE SAME DIRECTORY as the 
-executable that you wish to open to search for the keyword. And thus, the 
+filename is either a full path to the text file that you wish to do your
+searching in, or it is the name of a text file located IN THE SAME DIRECTORY as
+the executable that you wish to open to search for the keyword. And thus, the 
 keyword is a word that you want to find in the file depicted by filename.
 
 INTERPRETING THE OUTPUT

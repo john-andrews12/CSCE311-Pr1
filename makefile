@@ -17,11 +17,11 @@ unix_dom_sock_sol.o: unix_dom_sock_sol.cc
 	$(GPP) -c unix_dom_sock_sol.cc
 
 SharedMemorySol: $S
-	$(GPP) -o SharedMemorySol $S
+	$(GPP) -pthread -o SharedMemorySol $S
 
 sharedMemory.o: sharedMemory.cpp
 	$(GPP) -c sharedMemory.cpp
 
 clean:
-	rm ./UnixDomSock ./unix_sock.* ./SharedMemorySol ./PipesSol
+	rm ./UnixDomSockSol ./unix_sock.* ./SharedMemorySol ./PipesSol
 
