@@ -23,5 +23,5 @@ sharedMemory.o: sharedMemory.cpp
 	$(GPP) -c sharedMemory.cpp
 
 clean:
-	rm ./UnixDomSockSol ./unix_sock.* ./SharedMemorySol ./PipesSol
+	rm ./UnixDomSockSol ./SharedMemorySol ./PipesSol
 

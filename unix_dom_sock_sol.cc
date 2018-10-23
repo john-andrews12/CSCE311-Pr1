@@ -441,6 +441,8 @@ int main(int argc, char *argv[]) {
 		
 		close(parent_sock2);
 		close(child_sock2);
+		unlink(CHILD_PATH);//remove the sockets at the end of execution
+		unlink(PARENT_PATH);
 	}
 	
 	//std::cout << "SUCCESSFUL EXIT OF MAIN" << std::endl;
