@@ -1,6 +1,6 @@
 GPP = g++ -O3 -Wall -std=c++11
 
-C = completed_sol.cc
+C = unix_dom_sock_sol.cc
 S = sharedMemory.cpp
 P = pipes_solution.cc
 
@@ -10,15 +10,18 @@ PipesSol: $P
 pipes_solution.o: pipes_solution.cc
 	$(GPP) -c pipes_solution.cc
 
-UnixDomSock: $C
-	$(GPP) -o UnixDomSock $C
+UnixDomSockSol: $C
+	$(GPP) -o UnixDomSockSol $C
 
-completed_sol.o: completed_sol.cc
-	$(GPP) -c completed_sol.cc
+unix_dom_sock_sol.o: unix_dom_sock_sol.cc
+	$(GPP) -c unix_dom_sock_sol.cc
 
-shm: $S
-	$(GPP) -pthread -o shm $S
+SharedMemorySol: $S
+	$(GPP) -o SharedMemorySol $S
+
+sharedMemory.o: sharedMemory.cpp
+	$(GPP) -c sharedMemory.cpp
 
 clean:
-	rm ./UnixDomSock ./unix_sock.* ./shm ./PipesSol
+	rm ./UnixDomSock ./unix_sock.* ./SharedMemorySol ./PipesSol
 

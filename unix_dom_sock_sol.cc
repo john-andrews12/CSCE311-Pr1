@@ -6,7 +6,6 @@
 #include <sys/un.h>
 #include <signal.h>
 
-std::string GetEightLetterRep(std::string input);
 bool StringAContainsB(std::string a, std::string b);
 std::string RemoveStartEndSymbols(std::string input);
 std::string ToLower(std::string input);
@@ -14,6 +13,7 @@ std::string ToLower(std::string input);
 #define PARENT_PATH "unix_sock.parent"
 #define CHILD_PATH "unix_sock.child"
 #define FIRST_MESSAGE_LEN 8
+#define END_OF_LINE_CHAR '\0'
 #define ENGLISH_WORD_DELIM ' '
 #define ERRNO_NO_SUCH_FILE 2
 #define ERRNO_NO_DATA_AVAILABLE 61
@@ -100,48 +100,32 @@ int main(int argc, char *argv[]) {
 		int size_rec = 0;
 		//handle the initial message, that is getting the total number of expected lines
 		while (first_com) {
+			//read from the socket
 			recieved = recv(newfd, buf, sizeof(buf), 0);
 			if (recieved == -1) {
 				std::cout << "ERROR at recv call " << errno << std::endl;
 				exit(1);
 			}
 			
-			if (recieved >= FIRST_MESSAGE_LEN || rec.size() + recieved >= FIRST_MESSAGE_LEN) {
-				//the first thing sent should be the number of lines, 8 digits gives 99,999,999
-				//lines of possibility and I'm assuming we aren't getting files that large
-				first_com = false;//once we get those eight bytes we have received the first com
-				
-				size_rec = rec.size();
-				//stop condition here is what we need minus what we already have
-				for (int i = 0; i < FIRST_MESSAGE_LEN - size_rec; ++i) {
-					rec += buf[i];
-					recieved--;
+			for (int i = 0; i < recieved; i++) {
+				if (buf[i] == END_OF_LINE_CHAR && first_com) {
+					//we've just hit the end of the first communication which tells us how many lines to expect
+					total_lines = stoi(rec);
+					first_com = false;
+					rec = "";
 				}
-				
-				total_lines = stoi(rec);
-				rec = "";
-				
-				//if there are still characters to process - note the stop condition
-				for (int i = FIRST_MESSAGE_LEN; recieved > 0; ++i) {
-					if (buf[i] == '\0') {
-						if (StringAContainsB(rec,keyword)) {
-							all_lines.push_back(rec);
-						}
-						total_lines--;
-						rec = "";
+				else if (buf[i] == '\0') {
+					//rec is currently holding a full line so process it and subtract from the total lines
+					total_lines--;
+					if (StringAContainsB(rec,keyword)) {
+						all_lines.push_back(rec);
 					}
-					else
-					{
-						rec += buf[i];
-					}
-					recieved--;
+					
+					rec = "";
 				}
-			}
-			
-			if (first_com && recieved > 0) {
-				//we haven't read a total of FIRST_MESSAGE_LEN yet so just add whats there to the
-				//accumulator and let the while(first_com) keep going
-				for (int i = 0; i < recieved; ++i) {
+				else
+				{
+					//if this isn't the end of a line, just add the next char onto the accumulator
 					rec += buf[i];
 				}
 			}
@@ -233,10 +217,10 @@ int main(int argc, char *argv[]) {
 		}
 		
 		//first we send how many lines it should be expecting
-		char const *first_message = GetEightLetterRep(std::to_string(all_lines.size())).c_str();
+		char const *first_message = (std::to_string(all_lines.size()) + END_OF_LINE_CHAR).c_str();
 		
-		int bytes_sent = send(parent_sock2, first_message, strlen(first_message), 0);
-		if (bytes_sent != FIRST_MESSAGE_LEN) {
+		int bytes_sent = send(parent_sock2, first_message, strlen(first_message) + 1, 0);//plus one for the end of line char
+		if (bytes_sent < 0) {
 			std::cout << "ERROR maybe at send (4) " << errno << std::endl;
 			exit(1);
 		}
@@ -326,10 +310,10 @@ int main(int argc, char *argv[]) {
 		}
 		
 		//now we need to send the first message, that is, how many lines there are total
-		char const *first_message = GetEightLetterRep(std::to_string(lines_total)).c_str();
+		char const *first_message = (std::to_string(lines_total) + END_OF_LINE_CHAR).c_str();
 		
-		bytes_sent = send(child_sock2, first_message, strlen(first_message), 0);
-		if (bytes_sent != FIRST_MESSAGE_LEN) {
+		bytes_sent = send(child_sock2, first_message, strlen(first_message) + 1, 0);//+1 for the end line char
+		if (bytes_sent < 0) {
 			std::cout << "ERROR maybe at send " << errno << std::endl;
 			exit(1);
 		}
@@ -391,7 +375,7 @@ int main(int argc, char *argv[]) {
 		}
 		
 		//HANDLE INPUT FROM CHILD PROCESS
-		std::cout << "Lines Containing key word alphabeticaly:" << std::endl;
+		std::cout << "Lines containing keyword alphabetically:" << std::endl;
 		
 		char *buf = new char[1024];
 		bool first_com = true;
@@ -415,42 +399,21 @@ int main(int argc, char *argv[]) {
 				exit(1);
 			}
 			
-			if (recieved >= FIRST_MESSAGE_LEN || rec.size() + recieved >= FIRST_MESSAGE_LEN) {
-				//note: we have to process 'recieved' characters. We only need the first 8 for the length, all past that 
-				//still need to be handled, just separtely 
-				
-				//the first thing sent should be the number of lines, 8 digits gives 99,999,999
-				//lines of possibility and I'm assuming we aren't getting files that large
-				first_com = false;//once we get those eight bytes we have received the first com
-				
-				size_rec = rec.size();
-				for (int i = 0; i < FIRST_MESSAGE_LEN - size_rec; ++i) {
-					rec += buf[i];
-					recieved--;
+			for (int i = 0; i < recieved; ++i) {
+				if (buf[i] == END_OF_LINE_CHAR && first_com) {
+					//we have gotten the entire first communication which is the number of lines to expect
+					total_lines = stoi(rec);
+					first_com = false;
+					rec = "";
 				}
-				
-				total_lines = stoi(rec);
-				rec = "";
-				
-				//if there is still characters to process, note the stop condition
-				for (int i = FIRST_MESSAGE_LEN; recieved > 0; ++i) {
-					if (buf[i] == '\0') {
-						std::cout << rec << std::endl;
-						total_lines--;
-						rec = "";
-					}
-					else
-					{
-						rec += buf[i];
-					}
-					recieved--;
+				else if (buf[i] == '\0') {
+					//this is how output is given to the user
+					std::cout << rec << std::endl;
+					total_lines--;
+					rec = "";
 				}
-			}
-			
-			if (first_com && recieved > 0) {
-				//we haven't read a total of FIRST_MESSAGE_LEN yet so just add whats there to the
-				//accumulator and let the while(first_com) keep going
-				for (int i = 0; i < recieved; ++i) {
+				else
+				{
 					rec += buf[i];
 				}
 			}
@@ -554,23 +517,6 @@ bool StringAContainsB(std::string a, std::string b) {
 	}
 	
 	return ret_val;
-}
-
-std::string GetEightLetterRep(std::string input) {
-	int num_not_zero = input.size();
-	
-	if (num_not_zero > FIRST_MESSAGE_LEN) {
-		//the file has too many lines
-		exit(1);
-	}
-	
-	std::string ret = input;
-	
-	for (int i = num_not_zero; i < FIRST_MESSAGE_LEN; ++i) {
-		ret = "0"+ret;
-	}
-	
-	return ret;
 }
 
 std::string ToLower(std::string input) {
